@@ -75,14 +75,14 @@ Depending on the configured url you can initial the request through:
 
 Or with options:
 
-    /auth/esi?scope=esi-location.read_online.v1
+    /auth/esi?scope=publicData
 
 There is no default requested scope, copy them from the developer portal.
 
 ```elixir
 config :ueberauth, Ueberauth,
   providers: [
-    esi: {Ueberauth.Strategy.ESI, [default_scope: "esi-location.read_online.v1"]}
+    esi: {Ueberauth.Strategy.ESI, [default_scope: "publicData"]}
   ]
 ```
 

@@ -17,6 +17,25 @@ defmodule Ueberauth.Strategy.ESI.OAuth do
     token_url: "https://login.eveonline.com/oauth/token",
   ]
 
+  def get(token, url, headers \\ [], opts \\ []) do
+    [token: token]
+    |> client
+    |> put_param("client_secret", client().client_secret)
+    |> OAuth2.Client.get(url, headers, opts)
+  end
+
+  def get_authorization_access_token(token) do
+    client()
+    |> basic_auth()
+    |> post!(
+         Keyword.get(@defaults, :token_url),
+         %{grant_type: "authorization_code", code: token},
+         ["Content-Type": "application/json"]
+       )
+    |> Map.get(:body)
+#    |> Map.get("access_token")
+  end
+
   @doc """
   Construct a client for requests to ESI.
 
@@ -29,10 +48,10 @@ defmodule Ueberauth.Strategy.ESI.OAuth do
   """
   def client(opts \\ []) do
     config =
-    :ueberauth
-    |> Application.fetch_env!(Ueberauth.Strategy.ESI.OAuth)
-    |> check_config_key_exists(:client_id)
-    |> check_config_key_exists(:client_secret)
+      :ueberauth
+      |> Application.fetch_env!(Ueberauth.Strategy.ESI.OAuth)
+      |> check_config_key_exists(:client_id)
+      |> check_config_key_exists(:client_secret)
 
     client_opts =
       @defaults
@@ -51,32 +70,8 @@ defmodule Ueberauth.Strategy.ESI.OAuth do
     |> OAuth2.Client.authorize_url!(params)
   end
 
-  def get(token, url, headers \\ [], opts \\ []) do
-    [token: token]
-    |> client
-    |> put_param("client_secret", client().client_secret)
-    |> OAuth2.Client.get(url, headers, opts)
-  end
-
-  def get_token!(params \\ [], options \\ []) do
-    headers        = Keyword.get(options, :headers, [])
-    options        = Keyword.get(options, :options, [])
-    client_options = Keyword.get(options, :client_options, [])
-    client         = OAuth2.Client.get_token!(client(client_options), params, headers, options)
-    client.token
-  end
-
-  # Strategy Callbacks
-
   def authorize_url(client, params) do
     OAuth2.Strategy.AuthCode.authorize_url(client, params)
-  end
-
-  def get_token(client, params, headers) do
-    client
-    |> put_param("client_secret", client.client_secret)
-    |> put_header("Accept", "application/json")
-    |> OAuth2.Strategy.AuthCode.get_token(params, headers)
   end
 
   defp check_config_key_exists(config, key) when is_list(config) do
