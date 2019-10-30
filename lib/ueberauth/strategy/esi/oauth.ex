@@ -13,8 +13,8 @@ defmodule Ueberauth.Strategy.ESI.OAuth do
   @defaults [
     strategy: __MODULE__,
     site: "https://login.eveonline.com",
-    authorize_url: "https://login.eveonline.com/oauth/authorize",
-    token_url: "https://login.eveonline.com/oauth/token",
+    authorize_url: "https://login.eveonline.com/v2/oauth/authorize",
+    token_url: "https://login.eveonline.com/v2/oauth/token"
   ]
 
   def get(token, url, headers \\ [], opts \\ []) do
@@ -24,41 +24,45 @@ defmodule Ueberauth.Strategy.ESI.OAuth do
     |> OAuth2.Client.get(url, headers, opts)
   end
 
-  def get_authorization_access_token(token) do
-    client()
-    |> basic_auth()
-    |> post!(
-         Keyword.get(@defaults, :token_url),
-         %{grant_type: "authorization_code", code: token},
-         ["Content-Type": "application/json"]
-       )
-    |> Map.get(:body)
-#    |> Map.get("access_token")
+  def get_access_token(params \\ [], opts \\ []) do
+    case opts |> client |> OAuth2.Client.get_token(params) do
+      {:error, %{body: %{"error" => error, "error_description" => description}}} ->
+        {:error, {error, description}}
+      {:ok, %{token: %{access_token: nil} = token}} ->
+        %{"error" => error, "error_description" => description} = token.other_params
+        {:error, {error, description}}
+      {:ok, %{token: token}} ->
+        {:ok, token}
+    end
   end
 
   @doc """
   Construct a client for requests to ESI.
-
-  Optionally include any OAuth2 options here to be merged with the defaults.
-
-      Ueberauth.Strategy.ESI.OAuth.client(redirect_uri: "http://localhost:4000/auth/ESI/callback")
-
   This will be setup automatically for you in `Ueberauth.Strategy.ESI`.
   These options are only useful for usage outside the normal callback phase of Ueberauth.
   """
   def client(opts \\ []) do
-    config =
-      :ueberauth
-      |> Application.fetch_env!(Ueberauth.Strategy.ESI.OAuth)
-      |> check_config_key_exists(:client_id)
-      |> check_config_key_exists(:client_secret)
+    config = Application.get_env(:ueberauth, __MODULE__, [])
+    opts = @defaults |> Keyword.merge(opts) |> Keyword.merge(config) |> resolve_values()
+    json_library = Ueberauth.json_library()
 
-    client_opts =
-      @defaults
-      |> Keyword.merge(config)
-      |> Keyword.merge(opts)
+    OAuth2.Client.new(opts)
+    |> OAuth2.Client.put_serializer("application/json", json_library)
+  end
 
-    OAuth2.Client.new(client_opts)
+  def get_token(client, params, headers) do
+    # We can't use OAuth2.Strategy.AuthCode.get_token here as
+    # ESI complains if we have both header and body.
+    code = Keyword.pop(params, :code, client.params["code"])
+
+    client
+    |> put_param("client_secret", client.client_secret)
+    |> put_header("Accept", "application/json")
+    |> put_param(:code, code)
+    |> put_param(:grant_type, "authorization_code")
+    |> merge_params(params)
+    |> basic_auth()
+    |> put_headers(headers)
   end
 
   @doc """
@@ -74,13 +78,12 @@ defmodule Ueberauth.Strategy.ESI.OAuth do
     OAuth2.Strategy.AuthCode.authorize_url(client, params)
   end
 
-  defp check_config_key_exists(config, key) when is_list(config) do
-    unless Keyword.has_key?(config, key) do
-      raise "#{inspect (key)} missing from config :ueberauth, Ueberauth.Strategy.ESI"
+  defp resolve_values(list) do
+    for {key, value} <- list do
+      {key, resolve_value(value)}
     end
-    config
   end
-  defp check_config_key_exists(_, _) do
-    raise "Config :ueberauth, Ueberauth.Strategy.ESI is not a keyword list, as expected"
-  end
+
+  defp resolve_value({m, f, a}) when is_atom(m) and is_atom(f), do: apply(m, f, a)
+  defp resolve_value(v), do: v
 end

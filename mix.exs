@@ -26,7 +26,7 @@ defmodule Ueberauth.ESI.Mixfile do
 
   defp deps do
     [
-      {:oauth2, "~> 0.9"},
+      {:oauth2, "~> 1.0 or ~> 2.0"},
       {:ueberauth, "~> 0.4"},
       # docs dependencies
       {:earmark, ">= 0.0.0", only: :dev},

@@ -10,7 +10,7 @@
 
     ```elixir
     def deps do
-      [{:ueberauth_esi, "~> 0.0.2"}]
+      [{:ueberauth_esi, "~> 0.0.3"}]
     end
     ```
 
@@ -75,14 +75,14 @@ Depending on the configured url you can initial the request through:
 
 Or with options:
 
-    /auth/esi?scope=publicData
+    /auth/esi?scope=esi-characters.read_contacts.v1
 
 There is no default requested scope, copy them from the developer portal.
 
 ```elixir
 config :ueberauth, Ueberauth,
   providers: [
-    esi: {Ueberauth.Strategy.ESI, [default_scope: "publicData"]}
+    esi: {Ueberauth.Strategy.ESI, [default_scope: "esi-characters.read_contacts.v1"]}
   ]
 ```
 
@@ -99,6 +99,12 @@ config :ueberauth, Ueberauth,
     esi: {Ueberauth.Strategy.ESI, [send_redirect_uri: false]}
   ]
 ```
+
+## Further reading
+There is now a fantastic guide about OAuth 2.0 and ESI at https://docs.esi.evetech.net/docs/sso/web_based_sso_flow.html.
+
+## Thanks
+- Thanks to [Black Madness](https://github.com/blackmadness) for raising the issue about how the endpoint should be OAuth 2.0.
 
 ## License
 
