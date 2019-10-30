@@ -93,9 +93,6 @@ defmodule Ueberauth.Strategy.ESI do
       [scope: scopes]
       |> Keyword.put(:state, "stan")
 
-    scopes = conn.params["scope"] || option(conn, :default_scope)
-    send_redirect_uri = Keyword.get(options(conn), :send_redirect_uri, true)
-
     opts = oauth_client_options_from_conn(conn)
     redirect!(conn, Ueberauth.Strategy.ESI.OAuth.authorize_url!(params, opts))
   end
@@ -157,7 +154,6 @@ defmodule Ueberauth.Strategy.ESI do
   """
   def credentials(conn) do
     token = conn.private.esi_token
-    user = conn.private.esi_user
     scope_string = (conn.private.esi_user["Scopes"] || "")
     scopes = String.split(scope_string, ",")
 

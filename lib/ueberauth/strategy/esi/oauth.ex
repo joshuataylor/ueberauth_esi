@@ -50,33 +50,6 @@ defmodule Ueberauth.Strategy.ESI.OAuth do
     |> OAuth2.Client.put_serializer("application/json", json_library)
   end
 
-  @doc """
-  Provides the authorize url for the request phase of Ueberauth. No need to call this usually.
-  """
-  def authorize_url!(params \\ [], opts \\ []) do
-    opts
-    |> client
-    |> OAuth2.Client.authorize_url!(params)
-  end
-
-  def authorize_url(client, params) do
-    OAuth2.Strategy.AuthCode.authorize_url(client, params)
-  end
-
-  defp check_config_key_exists(config, key) when is_list(config) do
-    unless Keyword.has_key?(config, key) do
-      raise "#{inspect (key)} missing from config :ueberauth, Ueberauth.Strategy.ESI"
-    end
-    config
-  end
-  defp check_config_key_exists(_, _) do
-    raise "Config :ueberauth, Ueberauth.Strategy.ESI is not a keyword list, as expected"
-  end
-
-  def authorize_url(client, params) do
-    OAuth2.Strategy.AuthCode.authorize_url(client, params)
-  end
-
   def get_token(client, params, headers) do
     # We can't use OAuth2.Strategy.AuthCode.get_token here as
     # ESI complains if we have both header and body.
@@ -90,6 +63,19 @@ defmodule Ueberauth.Strategy.ESI.OAuth do
     |> merge_params(params)
     |> basic_auth()
     |> put_headers(headers)
+  end
+
+  @doc """
+  Provides the authorize url for the request phase of Ueberauth. No need to call this usually.
+  """
+  def authorize_url!(params \\ [], opts \\ []) do
+    opts
+    |> client
+    |> OAuth2.Client.authorize_url!(params)
+  end
+
+  def authorize_url(client, params) do
+    OAuth2.Strategy.AuthCode.authorize_url(client, params)
   end
 
   defp resolve_values(list) do
